@@ -103,7 +103,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 1.5
-  detectionRange: 10
+  detectionRange: 100
   updateTargetInterval: 0.2
   enemyRigidbody: {fileID: 0}
   pinballMaterial: {fileID: 0}

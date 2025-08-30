@@ -4,7 +4,7 @@ public class Enemy : MonoBehaviour
 {
     [Header("Enemy Settings")]
     [SerializeField] private float moveSpeed = 2f;
-    [SerializeField] private float detectionRange = 10f;
+    [SerializeField] private float detectionRange = 100f;
     [SerializeField] private float updateTargetInterval = 0.2f;
     
     [Header("Physics Settings")]
@@ -49,10 +49,10 @@ public class Enemy : MonoBehaviour
         spriteRenderer = GetComponent<SpriteRenderer>();
         enemyCollider = GetComponent<Collider2D>();
         
-        // Configura o trigger do collider
+        // Configura o collider para sempre ter colisão física (não trigger por padrão)
         if (enemyCollider != null)
         {
-            enemyCollider.isTrigger = true;
+            enemyCollider.isTrigger = false; // Sempre colide com objetos
         }
         
         // Cria material de física para pinball se não foi atribuído
@@ -175,34 +175,29 @@ public class Enemy : MonoBehaviour
         }
     }
     
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        // Verifica se colidiu com um player
-        if (other.CompareTag("Player"))
-        {
-            Player playerScript = other.GetComponent<Player>();
-            
-            // Se o player está com jump pressionado, ativa o modo pinball
-            if (playerScript != null && playerScript.IsJumpPressed() && currentState == EnemyState.Following)
-            {
-                EnterPinballMode(other.transform);
-            }
-        }
-    }
-    
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        // No modo pinball, pode colidir com players e causar knockback
-        if (currentState == EnemyState.Pinball && collision.gameObject.CompareTag("Player"))
+        // Verifica se colidiu com um player (para detecção de ataque)
+        if (collision.gameObject.CompareTag("Player"))
         {
             Player playerScript = collision.gameObject.GetComponent<Player>();
-            Rigidbody2D playerRb = collision.gameObject.GetComponent<Rigidbody2D>();
             
-            if (playerRb != null)
+            // Se o player está atacando e este inimigo não está em pinball, ativa o modo pinball
+            if (playerScript != null && playerScript.IsJumpPressed() && currentState == EnemyState.Following)
             {
-                // Calcula direção do knockback para o player
-                Vector2 knockbackDirection = (collision.transform.position - transform.position).normalized;
-                playerRb.AddForce(knockbackDirection * knockbackForce, ForceMode2D.Impulse);
+                EnterPinballMode(collision.transform);
+            }
+            // No modo pinball, pode causar knockback no player
+            else if (currentState == EnemyState.Pinball)
+            {
+                Rigidbody2D playerRb = collision.gameObject.GetComponent<Rigidbody2D>();
+                
+                if (playerRb != null)
+                {
+                    // Calcula direção do knockback para o player
+                    Vector2 knockbackDirection = (collision.transform.position - transform.position).normalized;
+                    playerRb.AddForce(knockbackDirection * knockbackForce, ForceMode2D.Impulse);
+                }
             }
         }
         
@@ -235,7 +230,7 @@ public class Enemy : MonoBehaviour
         
         // Configura física para pinball
         enemyRigidbody.linearDamping = 0.01f; // Fricção mínima
-        enemyCollider.isTrigger = false; // Permite colisões físicas
+        // Mantém collider físico (não trigger) para colisões
         
         if (pinballMaterial != null)
         {
@@ -259,7 +254,7 @@ public class Enemy : MonoBehaviour
         // Restaura configurações normais
         enemyRigidbody.linearDamping = 0.5f;
         enemyRigidbody.linearVelocity = Vector2.zero;
-        enemyCollider.isTrigger = true;
+        // Mantém collider físico (não trigger) para sempre colidir
         enemyCollider.sharedMaterial = null;
         
         // Restaura cor normal
