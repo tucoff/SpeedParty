@@ -16,8 +16,9 @@ public class WaveManager : MonoBehaviour
     [SerializeField] private int initialEnemiesPerWave = 3;
     [SerializeField] private int enemyIncreasePerWave = 2;
     [SerializeField] private int maxEnemiesPerWave = 20;
-    [SerializeField] private float difficultyIncreaseRate = 1.1f;
     
+    //[SerializeField] private float difficultyIncreaseRate = 1.1f;
+
     [Header("UI Settings")]
     [SerializeField] private TextMeshProUGUI waveText;
     [SerializeField] private Color intervalColor = Color.yellow;
@@ -171,9 +172,10 @@ public class WaveManager : MonoBehaviour
         if (enemyComponent != null)
         {
             // Increase enemy stats based on current wave
-            float speedMultiplier = Mathf.Pow(difficultyIncreaseRate, currentWave - 1);
-            enemyComponent.SetMoveSpeed(3f * speedMultiplier);
-            enemyComponent.SetDetectionRange(10f + (currentWave * 0.5f));
+            //float speedMultiplier = Mathf.Pow(difficultyIncreaseRate, currentWave - 1);
+            //enemyComponent.SetMoveSpeed(3f * speedMultiplier);
+            // Manter detectionRange padrão de 100f definido no Enemy prefab
+            //enemyComponent.SetDetectionRange(10f + (currentWave * 0.5f));
         }
 
         // Subscribe to enemy events (we'll modify Enemy.cs to support this)
