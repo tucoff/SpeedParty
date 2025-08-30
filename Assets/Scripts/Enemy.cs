@@ -205,16 +205,29 @@ public class Enemy : MonoBehaviour
                 playerRb.AddForce(knockbackDirection * knockbackForce, ForceMode2D.Impulse);
             }
         }
+        
+        // No modo pinball, mata outros inimigos ao colidir com eles
+        if (currentState == EnemyState.Pinball && collision.gameObject.CompareTag("Enemy"))
+        {
+            Enemy otherEnemy = collision.gameObject.GetComponent<Enemy>();
+            
+            // Coloca o outro inimigo em modo pinball se não estiver já
+            if (otherEnemy != null && !otherEnemy.IsPinballMode())
+            {
+                Debug.Log("Pinball enemy hit another enemy - putting it in pinball mode!");
+                otherEnemy.EnterPinballMode(transform);
+            }
+        }
     }
     
-    private void EnterPinballMode(Transform attackingPlayer)
+    public void EnterPinballMode(Transform attackingEntity)
     {
         currentState = EnemyState.Pinball;
         isPinballMode = true;
         pinballEndTime = Time.time + pinballDuration;
         
-        // Calcula direção oposta ao player que atacou
-        Vector2 knockbackDirection = (transform.position - attackingPlayer.position).normalized;
+        // Calcula direção oposta à entidade que causou o pinball (player ou outro inimigo)
+        Vector2 knockbackDirection = (transform.position - attackingEntity.position).normalized;
         
         // Aplica força de knockback
         enemyRigidbody.linearVelocity = Vector2.zero;
