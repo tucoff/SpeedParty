@@ -6,7 +6,9 @@ public class Player : MonoBehaviour
     [Header("Movement Settings")]
     [SerializeField] private Rigidbody2D playerBody;
     [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float friction = 0.9f;
+    [SerializeField] private float acceleration = 10f;
+    [SerializeField] private float deceleration = 5f;
+    [SerializeField] private float minSlideSpeed = 0.05f;
     
     [Header("Visual Settings")]
     [SerializeField] private SpriteRenderer spriteRenderer;
@@ -88,18 +90,23 @@ public class Player : MonoBehaviour
     {
         if (playerBody == null) return;
         
-        // Se há input, acelera na direção do input
+        Vector2 targetVelocity;
+        
+        // Se há input, define a velocidade alvo
         if (moveInput != Vector2.zero)
         {
-            currentVelocity = moveInput * moveSpeed;
+            targetVelocity = moveInput * moveSpeed;
+            
+            // Acelera suavemente em direção à velocidade alvo
+            currentVelocity = Vector2.MoveTowards(currentVelocity, targetVelocity, acceleration * Time.deltaTime);
         }
         else
         {
-            // Aplica fricção/deslize quando não há input
-            currentVelocity *= friction;
+            // Quando não há input, desacelera suavemente até zero
+            currentVelocity = Vector2.MoveTowards(currentVelocity, Vector2.zero, deceleration * Time.deltaTime);
             
-            // Para completamente quando a velocidade fica muito baixa
-            if (currentVelocity.magnitude < 0.1f)
+            // Para completamente quando a velocidade fica muito baixa (evita tremulação)
+            if (currentVelocity.magnitude < minSlideSpeed)
             {
                 currentVelocity = Vector2.zero;
             }
@@ -125,5 +132,11 @@ public class Player : MonoBehaviour
     private void OnJumpCanceled(InputAction.CallbackContext context)
     {
         isJumpPressed = false;
+    }
+    
+    // Método público para verificar se o jump está pressionado
+    public bool IsJumpPressed()
+    {
+        return isJumpPressed;
     }
 }
