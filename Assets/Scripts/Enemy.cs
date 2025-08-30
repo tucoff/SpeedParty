@@ -101,6 +101,22 @@ public class Enemy : MonoBehaviour
         if (Time.time >= pinballEndTime)
         {
             ExitPinballMode();
+            
+            // NEW: Disappear after pinball time ends and notify wave manager
+            EnemyDeathHandler deathHandler = GetComponent<EnemyDeathHandler>();
+            if (deathHandler != null)
+            {
+                deathHandler.NotifyEnemyDisappear();
+            }
+            else
+            {
+                // Fallback: destroy directly and try to notify wave manager
+                if (WaveManager.Instance != null)
+                {
+                    WaveManager.Instance.OnEnemyDisappear(gameObject);
+                }
+                Destroy(gameObject);
+            }
             return;
         }
         
@@ -189,16 +205,29 @@ public class Enemy : MonoBehaviour
                 playerRb.AddForce(knockbackDirection * knockbackForce, ForceMode2D.Impulse);
             }
         }
+        
+        // No modo pinball, mata outros inimigos ao colidir com eles
+        if (currentState == EnemyState.Pinball && collision.gameObject.CompareTag("Enemy"))
+        {
+            Enemy otherEnemy = collision.gameObject.GetComponent<Enemy>();
+            
+            // Coloca o outro inimigo em modo pinball se não estiver já
+            if (otherEnemy != null && !otherEnemy.IsPinballMode())
+            {
+                Debug.Log("Pinball enemy hit another enemy - putting it in pinball mode!");
+                otherEnemy.EnterPinballMode(transform);
+            }
+        }
     }
     
-    private void EnterPinballMode(Transform attackingPlayer)
+    public void EnterPinballMode(Transform attackingEntity)
     {
         currentState = EnemyState.Pinball;
         isPinballMode = true;
         pinballEndTime = Time.time + pinballDuration;
         
-        // Calcula direção oposta ao player que atacou
-        Vector2 knockbackDirection = (transform.position - attackingPlayer.position).normalized;
+        // Calcula direção oposta à entidade que causou o pinball (player ou outro inimigo)
+        Vector2 knockbackDirection = (transform.position - attackingEntity.position).normalized;
         
         // Aplica força de knockback
         enemyRigidbody.linearVelocity = Vector2.zero;
@@ -260,9 +289,35 @@ public class Enemy : MonoBehaviour
         detectionRange = range;
     }
     
+    public void SetPinballDuration(float duration)
+    {
+        pinballDuration = duration;
+    }
+    
     public bool IsPinballMode()
     {
         return isPinballMode;
+    }
+    
+    public float GetRemainingPinballTime()
+    {
+        if (isPinballMode)
+        {
+            return Mathf.Max(0f, pinballEndTime - Time.time);
+        }
+        return 0f;
+    }
+    
+    // Method to manually destroy enemy (for wave management)
+    public void DestroyEnemy()
+    {
+        EnemyDeathHandler deathHandler = GetComponent<EnemyDeathHandler>();
+        if (deathHandler != null)
+        {
+            deathHandler.NotifyEnemyDeath();
+        }
+        
+        Destroy(gameObject);
     }
     
     // Gizmos para debug

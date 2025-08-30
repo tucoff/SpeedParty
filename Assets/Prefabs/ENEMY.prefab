@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 6492695935349628877}
   m_Layer: 0
   m_Name: ENEMY
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -102,6 +102,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 19c4e1d2f817a07fd80960ab3679d079, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  moveSpeed: 3
+  detectionRange: 10
+  updateTargetInterval: 0.2
+  enemyRigidbody: {fileID: 0}
+  pinballMaterial: {fileID: 0}
+  knockbackForce: 15
+  pinballDuration: 5
+  minPinballSpeed: 2
+  normalColor: {r: 1, g: 1, b: 1, a: 1}
+  pinballColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
 --- !u!60 &6881343122653324639
 PolygonCollider2D:
   m_ObjectHideFlags: 0

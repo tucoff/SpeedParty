@@ -15,10 +15,21 @@ public class Player : MonoBehaviour
     [SerializeField] private Color normalColor = Color.white;
     [SerializeField] private Color activeColor = Color.red;
     
+    [Header("Attack Settings")]
+    [SerializeField] private float maxAttackDuration = 3f;
+    [SerializeField] private Color cooldownColor = Color.blue;
+    
     private Vector2 moveInput;
     private Vector2 currentVelocity;
     private InputSystem_Actions inputActions;
     private bool isJumpPressed = false;
+    
+    // Attack system variables
+    private bool isAttacking = false;
+    private bool isOnCooldown = false;
+    private float attackStartTime = 0f;
+    private float attackDuration = 0f;
+    private float cooldownEndTime = 0f;
 
     void Awake()
     {
@@ -73,6 +84,9 @@ public class Player : MonoBehaviour
         // Aplica o movimento
         Move();
         
+        // Atualiza o sistema de ataque
+        UpdateAttackSystem();
+        
         // Atualiza a cor do sprite
         UpdateSpriteColor();
     }
@@ -120,23 +134,131 @@ public class Player : MonoBehaviour
     {
         if (spriteRenderer == null) return;
         
-        // Muda a cor baseado no estado do botão space
-        spriteRenderer.color = isJumpPressed ? activeColor : normalColor;
+        // Muda a cor baseado no estado atual
+        if (isOnCooldown)
+        {
+            spriteRenderer.color = cooldownColor;
+        }
+        else if (isAttacking)
+        {
+            spriteRenderer.color = activeColor;
+        }
+        else
+        {
+            spriteRenderer.color = normalColor;
+        }
     }
     
     private void OnJumpStarted(InputAction.CallbackContext context)
     {
-        isJumpPressed = true;
+        // Only start attack if not on cooldown
+        if (!isOnCooldown)
+        {
+            isJumpPressed = true;
+            isAttacking = true;
+            attackStartTime = Time.time;
+        }
     }
     
     private void OnJumpCanceled(InputAction.CallbackContext context)
     {
         isJumpPressed = false;
+        
+        // Only end attack if we were actually attacking
+        if (isAttacking)
+        {
+            EndAttack();
+        }
     }
     
     // Método público para verificar se o jump está pressionado
     public bool IsJumpPressed()
     {
-        return isJumpPressed;
+        return isAttacking; // Return attacking state instead of just button press
+    }
+    
+    // Public method to check if player is currently attacking
+    public bool IsAttacking()
+    {
+        return isAttacking;
+    }
+    
+    // Private method to update attack system
+    private void UpdateAttackSystem()
+    {
+        // Check cooldown
+        if (isOnCooldown && Time.time >= cooldownEndTime)
+        {
+            isOnCooldown = false;
+        }
+        
+        // Check max attack duration
+        if (isAttacking && (Time.time - attackStartTime) >= maxAttackDuration)
+        {
+            // Force end attack after max duration
+            isJumpPressed = false;
+            EndAttack();
+        }
+    }
+    
+    // Private method to handle attack ending
+    private void EndAttack()
+    {
+        if (!isAttacking) return;
+        
+        isAttacking = false;
+        attackDuration = Time.time - attackStartTime;
+        
+        // Calculate cooldown based on hold time
+        float cooldownTime = attackDuration;
+        
+        // Add penalty if held over max duration
+        if (attackDuration >= maxAttackDuration)
+        {
+            cooldownTime += 1f; // Add 1 second penalty
+        }
+        
+        // Start cooldown
+        isOnCooldown = true;
+        cooldownEndTime = Time.time + cooldownTime;
+        
+        Debug.Log($"Attack ended. Duration: {attackDuration:F2}s, Cooldown: {cooldownTime:F2}s");
+    }
+    
+    // Method called when player should die
+    private void Die()
+    {
+        Debug.Log("Player died!");
+        Destroy(gameObject);
+    }
+    
+    // Collision detection for enemies
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Enemy"))
+        {
+            Enemy enemyScript = other.GetComponent<Enemy>();
+            
+            // Player dies if hit by enemy while not attacking
+            if (!isAttacking && enemyScript != null && !enemyScript.IsPinballMode())
+            {
+                Die();
+            }
+        }
+    }
+    
+    // Collision detection for pinball mode enemies (using OnCollisionEnter2D)
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Enemy"))
+        {
+            Enemy enemyScript = collision.gameObject.GetComponent<Enemy>();
+            
+            // Player dies if hit by enemy in pinball mode while not attacking
+            if (!isAttacking && enemyScript != null && enemyScript.IsPinballMode())
+            {
+                Die();
+            }
+        }
     }
 }
