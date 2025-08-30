@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
+using UnityEngine.InputSystem;
 
 public class WaveManager : MonoBehaviour
 {
@@ -15,6 +17,14 @@ public class WaveManager : MonoBehaviour
     [SerializeField] private int enemyIncreasePerWave = 2;
     [SerializeField] private int maxEnemiesPerWave = 20;
     [SerializeField] private float difficultyIncreaseRate = 1.1f;
+    
+    [Header("UI Settings")]
+    [SerializeField] private TextMeshProUGUI waveText;
+    [SerializeField] private Color intervalColor = Color.yellow;
+    [SerializeField] private Color activeWaveColor = Color.white;
+    
+    [Header("Debug Settings")]
+    [SerializeField] private bool debug = false;
     
     [Header("Current Wave Info")]
     [SerializeField] private int currentWave = 1;
@@ -58,11 +68,30 @@ public class WaveManager : MonoBehaviour
             return;
         }
 
+        if (waveText == null)
+        {
+            Debug.LogError("WaveManager: Wave Text UI não foi atribuído!");
+        }
+
+        UpdateWaveText();
         StartGame();
     }
 
     void Update()
     {
+        // Debug mode: press N to start next wave
+        if (debug && Keyboard.current.nKey.wasPressedThisFrame)
+        {
+            if (waveInProgress)
+            {
+                ForceNextWave();
+            }
+            else
+            {
+                StartNewWave();
+            }
+        }
+
         // Check if all enemies in current wave are dead
         if (waveInProgress && enemiesAliveCount <= 0 && activeEnemies.Count == 0)
         {
@@ -79,7 +108,16 @@ public class WaveManager : MonoBehaviour
         
         gameStarted = true;
         Debug.Log("Jogo iniciado! Começando primeira wave...");
-        StartCoroutine(StartWaveCoroutine());
+        
+        if (debug)
+        {
+            Debug.Log("Modo DEBUG ativado! Pressione N para iniciar as waves.");
+            UpdateWaveText(); // Update text but don't start wave
+        }
+        else
+        {
+            StartCoroutine(StartWaveCoroutine());
+        }
     }
 
     private IEnumerator StartWaveCoroutine()
@@ -97,6 +135,8 @@ public class WaveManager : MonoBehaviour
         enemiesAliveCount = enemiesInCurrentWave;
         
         Debug.Log($"Iniciando Wave {currentWave} com {enemiesInCurrentWave} inimigos!");
+        
+        UpdateWaveText();
         
         StartCoroutine(SpawnWaveEnemies());
     }
@@ -155,13 +195,23 @@ public class WaveManager : MonoBehaviour
         Debug.Log($"Wave {currentWave - 1} completada! Total de mortes: {totalDeaths}");
         Debug.Log($"Próxima wave ({currentWave}) começará em {timeBetweenWaves} segundos...");
         
+        UpdateWaveText();
+        
         StartCoroutine(WaitForNextWave());
     }
 
     private IEnumerator WaitForNextWave()
     {
         yield return new WaitForSeconds(timeBetweenWaves);
-        StartNewWave();
+        
+        if (debug)
+        {
+            Debug.Log($"Wave {currentWave} pronta! Pressione N para iniciar.");
+        }
+        else
+        {
+            StartNewWave();
+        }
     }
 
     public void OnEnemyDeath(GameObject enemy)
@@ -227,6 +277,23 @@ public class WaveManager : MonoBehaviour
             }
             activeEnemies.Clear();
             enemiesAliveCount = 0;
+        }
+    }
+
+    private void UpdateWaveText()
+    {
+        if (waveText == null) return;
+
+        waveText.text = $"Wave Nº{currentWave}";
+        
+        // Set color based on wave state
+        if (waveInProgress)
+        {
+            waveText.color = activeWaveColor;
+        }
+        else
+        {
+            waveText.color = intervalColor;
         }
     }
 
