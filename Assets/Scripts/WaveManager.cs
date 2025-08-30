@@ -171,8 +171,8 @@ public class WaveManager : MonoBehaviour
         if (enemyComponent != null)
         {
             // Increase enemy stats based on current wave
-            float speedMultiplier = Mathf.Pow(difficultyIncreaseRate, currentWave - 1);
-            enemyComponent.SetMoveSpeed(3f * speedMultiplier);
+            //float speedMultiplier = Mathf.Pow(difficultyIncreaseRate, currentWave - 1);
+            //enemyComponent.SetMoveSpeed(3f * speedMultiplier);
             enemyComponent.SetDetectionRange(10f + (currentWave * 0.5f));
         }
 

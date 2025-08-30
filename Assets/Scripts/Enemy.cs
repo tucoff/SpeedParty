@@ -3,7 +3,7 @@ using UnityEngine;
 public class Enemy : MonoBehaviour
 {
     [Header("Enemy Settings")]
-    [SerializeField] private float moveSpeed = 2f; // Reduzido de 3f para 2f
+    [SerializeField] private float moveSpeed = 2f;
     [SerializeField] private float detectionRange = 10f;
     [SerializeField] private float updateTargetInterval = 0.2f;
     
@@ -12,9 +12,9 @@ public class Enemy : MonoBehaviour
     [SerializeField] private PhysicsMaterial2D pinballMaterial;
     
     [Header("Attack Response Settings")]
-    [SerializeField] private float knockbackForce = 12f; // Reduzido de 15f para 12f
+    [SerializeField] private float knockbackForce = 12f; 
     [SerializeField] private float pinballDuration = 5f;
-    [SerializeField] private float minPinballSpeed = 1.5f; // Reduzido de 2f para 1.5f
+    [SerializeField] private float minPinballSpeed = 1.5f; 
     [SerializeField] private Color normalColor = Color.white;
     [SerializeField] private Color pinballColor = Color.yellow;
     

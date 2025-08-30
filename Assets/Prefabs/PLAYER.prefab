@@ -51,13 +51,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerBody: {fileID: 4517067785297826600}
-  moveSpeed: 5
-  acceleration: 10
-  deceleration: 5
+  moveSpeed: 2
+  acceleration: 7
+  deceleration: 3
   minSlideSpeed: 0.05
   spriteRenderer: {fileID: 2298379154435711406}
   normalColor: {r: 1, g: 1, b: 1, a: 1}
   activeColor: {r: 1, g: 0, b: 0, a: 1}
+  maxAttackDuration: 3
+  cooldownColor: {r: 0, g: 0, b: 1, a: 1}
+  pinballDuration: 5
+  minPinballSpeed: 1
+  pinballColor: {r: 1, g: 0, b: 1, a: 1}
+  pinballMaterial: {fileID: 0}
 --- !u!212 &2298379154435711406
 SpriteRenderer:
   m_ObjectHideFlags: 0
