@@ -101,6 +101,22 @@ public class Enemy : MonoBehaviour
         if (Time.time >= pinballEndTime)
         {
             ExitPinballMode();
+            
+            // NEW: Disappear after pinball time ends and notify wave manager
+            EnemyDeathHandler deathHandler = GetComponent<EnemyDeathHandler>();
+            if (deathHandler != null)
+            {
+                deathHandler.NotifyEnemyDisappear();
+            }
+            else
+            {
+                // Fallback: destroy directly and try to notify wave manager
+                if (WaveManager.Instance != null)
+                {
+                    WaveManager.Instance.OnEnemyDisappear(gameObject);
+                }
+                Destroy(gameObject);
+            }
             return;
         }
         
@@ -260,9 +276,35 @@ public class Enemy : MonoBehaviour
         detectionRange = range;
     }
     
+    public void SetPinballDuration(float duration)
+    {
+        pinballDuration = duration;
+    }
+    
     public bool IsPinballMode()
     {
         return isPinballMode;
+    }
+    
+    public float GetRemainingPinballTime()
+    {
+        if (isPinballMode)
+        {
+            return Mathf.Max(0f, pinballEndTime - Time.time);
+        }
+        return 0f;
+    }
+    
+    // Method to manually destroy enemy (for wave management)
+    public void DestroyEnemy()
+    {
+        EnemyDeathHandler deathHandler = GetComponent<EnemyDeathHandler>();
+        if (deathHandler != null)
+        {
+            deathHandler.NotifyEnemyDeath();
+        }
+        
+        Destroy(gameObject);
     }
     
     // Gizmos para debug
