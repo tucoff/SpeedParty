@@ -5,9 +5,9 @@ public class Player : MonoBehaviour
 {
     [Header("Movement Settings")]
     [SerializeField] private Rigidbody2D playerBody;
-    [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float acceleration = 10f;
-    [SerializeField] private float deceleration = 5f;
+    [SerializeField] private float moveSpeed = 3f; // Reduzido de 5f para 3f
+    [SerializeField] private float acceleration = 8f; // Reduzido de 10f para 8f
+    [SerializeField] private float deceleration = 4f; // Reduzido de 5f para 4f
     [SerializeField] private float minSlideSpeed = 0.05f;
     
     [Header("Visual Settings")]
@@ -18,6 +18,12 @@ public class Player : MonoBehaviour
     [Header("Attack Settings")]
     [SerializeField] private float maxAttackDuration = 3f;
     [SerializeField] private Color cooldownColor = Color.blue;
+    
+    [Header("Pinball Settings")]
+    [SerializeField] private float pinballDuration = 5f;
+    [SerializeField] private float minPinballSpeed = 1.5f; // Reduzido para ser mais lento
+    [SerializeField] private Color pinballColor = Color.magenta;
+    [SerializeField] private PhysicsMaterial2D pinballMaterial;
     
     private Vector2 moveInput;
     private Vector2 currentVelocity;
@@ -30,6 +36,11 @@ public class Player : MonoBehaviour
     private float attackStartTime = 0f;
     private float attackDuration = 0f;
     private float cooldownEndTime = 0f;
+    
+    // Pinball system variables
+    private bool isPinballMode = false;
+    private float pinballEndTime = 0f;
+    private bool canTakeDamage = true;
 
     void Awake()
     {
@@ -74,18 +85,36 @@ public class Player : MonoBehaviour
         {
             spriteRenderer.color = normalColor;
         }
+        
+        // Cria material de física para pinball se não foi atribuído
+        if (pinballMaterial == null)
+        {
+            CreatePinballMaterial();
+        }
     }
 
     void Update()
     {
-        // Captura o input WASD
-        GetInput();
+        // Atualiza o sistema de pinball primeiro
+        UpdatePinballSystem();
         
-        // Aplica o movimento
-        Move();
-        
-        // Atualiza o sistema de ataque
-        UpdateAttackSystem();
+        // Só permite movimento e ataque se não estiver em modo pinball
+        if (!isPinballMode)
+        {
+            // Captura o input WASD
+            GetInput();
+            
+            // Aplica o movimento
+            Move();
+            
+            // Atualiza o sistema de ataque
+            UpdateAttackSystem();
+        }
+        else
+        {
+            // No modo pinball, mantém velocidade mínima
+            MaintainPinballSpeed();
+        }
         
         // Atualiza a cor do sprite
         UpdateSpriteColor();
@@ -135,7 +164,11 @@ public class Player : MonoBehaviour
         if (spriteRenderer == null) return;
         
         // Muda a cor baseado no estado atual
-        if (isOnCooldown)
+        if (isPinballMode)
+        {
+            spriteRenderer.color = pinballColor;
+        }
+        else if (isOnCooldown)
         {
             spriteRenderer.color = cooldownColor;
         }
@@ -174,13 +207,25 @@ public class Player : MonoBehaviour
     // Método público para verificar se o jump está pressionado
     public bool IsJumpPressed()
     {
-        return isAttacking; // Return attacking state instead of just button press
+        return isJumpPressed; // Return actual jump pressed state
     }
     
     // Public method to check if player is currently attacking
     public bool IsAttacking()
     {
         return isAttacking;
+    }
+    
+    // Public method to check if player is in pinball mode
+    public bool IsPinballMode()
+    {
+        return isPinballMode;
+    }
+    
+    // Public method to check if player can take damage
+    public bool CanTakeDamage()
+    {
+        return canTakeDamage && !isPinballMode;
     }
     
     // Private method to update attack system
@@ -225,6 +270,72 @@ public class Player : MonoBehaviour
         Debug.Log($"Attack ended. Duration: {attackDuration:F2}s, Cooldown: {cooldownTime:F2}s");
     }
     
+    // Pinball system methods
+    private void UpdatePinballSystem()
+    {
+        if (isPinballMode && Time.time >= pinballEndTime)
+        {
+            ExitPinballMode();
+        }
+    }
+    
+    private void MaintainPinballSpeed()
+    {
+        if (playerBody.linearVelocity.magnitude < minPinballSpeed)
+        {
+            Vector2 randomDirection = Random.insideUnitCircle.normalized;
+            playerBody.linearVelocity = randomDirection * minPinballSpeed;
+        }
+    }
+    
+    public void EnterPinballMode(Vector2 initialVelocity)
+    {
+        if (isPinballMode) return;
+        
+        isPinballMode = true;
+        canTakeDamage = false;
+        pinballEndTime = Time.time + pinballDuration;
+        
+        // Aplicar velocity inicial se fornecida
+        if (initialVelocity != Vector2.zero)
+        {
+            playerBody.linearVelocity = initialVelocity;
+        }
+        
+        // Trocar para material pinball para ricochete
+        Collider2D playerCollider = GetComponent<Collider2D>();
+        if (playerCollider != null)
+        {
+            playerCollider.sharedMaterial = pinballMaterial;
+        }
+        
+        Debug.Log($"Player entered pinball mode for {pinballDuration} seconds!");
+    }
+    
+    private void ExitPinballMode()
+    {
+        if (!isPinballMode) return;
+        
+        isPinballMode = false;
+        canTakeDamage = true;
+        
+        // Remover material pinball
+        Collider2D playerCollider = GetComponent<Collider2D>();
+        if (playerCollider != null)
+        {
+            playerCollider.sharedMaterial = null;
+        }
+        
+        Debug.Log("Player exited pinball mode!");
+    }
+    
+    private void CreatePinballMaterial()
+    {
+        pinballMaterial = new PhysicsMaterial2D("Player Pinball Material");
+        pinballMaterial.friction = 0f;
+        pinballMaterial.bounciness = 0.8f; // Reduzido de 1f para 0.8f para menor velocidade
+    }
+    
     // Method called when player should die
     private void Die()
     {
@@ -232,32 +343,63 @@ public class Player : MonoBehaviour
         Destroy(gameObject);
     }
     
-    // Collision detection for enemies
+    // Collision detection for enemies and other players
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Enemy"))
         {
             Enemy enemyScript = other.GetComponent<Enemy>();
             
-            // Player dies if hit by enemy while not attacking
-            if (!isAttacking && enemyScript != null && !enemyScript.IsPinballMode())
+            // Player dies if hit by enemy while not attacking and can take damage
+            if (CanTakeDamage() && !isAttacking && enemyScript != null && !enemyScript.IsPinballMode())
             {
                 Die();
             }
         }
+        else if (other.CompareTag("Player"))
+        {
+            Player otherPlayer = other.GetComponent<Player>();
+            
+            // Se este player está atacando e o outro não está em pinball, transformar o outro em pinball
+            if (isAttacking && otherPlayer != null && !otherPlayer.IsPinballMode())
+            {
+                Vector2 knockbackDirection = (other.transform.position - transform.position).normalized;
+                Vector2 knockbackForce = knockbackDirection * minPinballSpeed * 1.5f;
+                otherPlayer.EnterPinballMode(knockbackForce);
+                
+                Debug.Log($"{gameObject.name} attacked {other.name} and put them in pinball mode!");
+            }
+        }
     }
     
-    // Collision detection for pinball mode enemies (using OnCollisionEnter2D)
+    // Collision detection for pinball mode enemies and players (using OnCollisionEnter2D)
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Enemy"))
         {
             Enemy enemyScript = collision.gameObject.GetComponent<Enemy>();
             
-            // Player dies if hit by enemy in pinball mode while not attacking
-            if (!isAttacking && enemyScript != null && enemyScript.IsPinballMode())
+            // Player dies if hit by enemy in pinball mode while not attacking and can take damage
+            if (CanTakeDamage() && !isAttacking && enemyScript != null && enemyScript.IsPinballMode())
             {
                 Die();
+            }
+        }
+        else if (collision.gameObject.CompareTag("Player"))
+        {
+            Player otherPlayer = collision.gameObject.GetComponent<Player>();
+            
+            // Se este player está atacando e colidiu com outro player em pinball, o outro morre
+            if (isAttacking && otherPlayer != null && otherPlayer.IsPinballMode())
+            {
+                otherPlayer.Die();
+                Debug.Log($"{gameObject.name} destroyed pinball player {collision.gameObject.name}!");
+            }
+            // Se ambos estão em pinball mode, eles ricocheteiam
+            else if (isPinballMode && otherPlayer != null && otherPlayer.IsPinballMode())
+            {
+                // O Unity Physics já cuida do ricochete, só logamos
+                Debug.Log($"Pinball collision between {gameObject.name} and {collision.gameObject.name}!");
             }
         }
     }
